@@ -71,7 +71,12 @@
   }
   .loaded .pill { border-width: 2px; padding: .3em .8em; }
   .loaded li.is-past .pill { --c: #b3b3b3; color: #6e6e6e; }
-  .del { font: inherit; font-weight: 600; font-size: .9em; background: none; border: 0; color: var(--red); cursor: pointer; padding: .4em; text-decoration: underline; }
+  .del {
+    width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+    background: #fff; border: 2px solid #c9c9c9; border-radius: 50%;
+    color: #6e6e6e; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 0 2px;
+  }
+  .del:hover, .del:focus-visible { border-color: var(--red); color: var(--red); }
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
   .logout { font: inherit; font-weight: 600; font-size: 14px; background: none; border: 0; color: var(--grey); cursor: pointer; text-decoration: underline; }
   .note { font-size: 13px; color: var(--grey); text-align: center; margin-top: 10px; }
@@ -207,13 +212,13 @@
         <div class="pill c-blue"><span>${fmtDate(e.date)}</span></div>
         <div class="pill c-green"><span>${esc(e.time)}</span></div>
         <div class="pill c-purple"><span>${esc(e.place)}</span></div>
-        <button class="del" data-id="${esc(e.id)}" type="button">Eliminar</button>
+        <button class="del" data-id="${esc(e.id)}" type="button" aria-label="Eliminar ${esc(e.title)}" title="Eliminar">×</button>
       </li>`).join('') : '<li class="note">Todavía no hay eventos cargados.</li>';
   }
 
   $('list').addEventListener('click', async (ev) => {
     const btn = ev.target.closest('.del');
-    if (!btn || !confirm('¿Eliminar este evento?')) return;
+    if (!btn || !confirm('¿Eliminar este evento de la lista?')) return;
     try { await Data.remove(btn.dataset.id, cred); await refresh(); }
     catch (e) { alert(e.message); }
   });

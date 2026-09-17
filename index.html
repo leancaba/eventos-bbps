@@ -13,8 +13,16 @@
   html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
   body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-  .board { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr 2px 1fr; }
-  .divider { background: var(--line); }
+  .board { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr 3px 1fr; }
+  .divider { background: var(--ink); }
+
+  /* Parte superior: próximo evento fijo + scroll con los siguientes */
+  .upper { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .fixed {
+    width: min(100%, 1840px); margin: 0 auto;
+    padding: clamp(10px, 2vh, 24px) calc(clamp(10px, 2.2vw, 40px) + var(--sb, 0px)) clamp(14px, 2.6vh, 30px) 0;
+  }
+  .fixed .empty { padding: clamp(10px, 3vh, 36px) 0; }
 
   .pane {
     min-height: 0; overflow-y: auto; overflow-x: hidden;
@@ -22,7 +30,7 @@
     scrollbar-width: thin; scrollbar-color: #6f6f6f #fff;
     padding-right: clamp(10px, 2.2vw, 40px);
   }
-  .pane.up { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); }
+  .pane.up { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 22%); mask-image: linear-gradient(to top, transparent 0, #000 22%); }
   .pane.down { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 22%); mask-image: linear-gradient(to top, transparent 0, #000 22%); }
   .pane::-webkit-scrollbar { width: 12px; }
   .pane::-webkit-scrollbar-track { background: #fff; border: 2px solid #777; margin: 6px 0; }
@@ -34,7 +42,6 @@
     gap: clamp(18px, 4.4vh, 64px);
     padding: clamp(18px, 3vh, 34px) 0;
   }
-  .up .list { margin-top: auto; }        /* los eventos quedan pegados a la división */
 
   .row {
     position: relative;
@@ -54,12 +61,12 @@
   /* Eventos pasados: bordes grises, sensación de "apagado" */
   .down .pill { --c: #b3b3b3; color: #6e6e6e; }
 
-  /* Línea sobre el próximo evento y bajo el último evento pasado */
-  .row.next::before, .row.last::after {
+  /* Línea bajo el próximo evento y bajo el último evento pasado */
+  .row.next::after, .row.last::after {
     content: ''; position: absolute; height: 2px; background: var(--ink);
     left: 8%; right: 10%;
   }
-  .row.next::before { top: calc(clamp(18px, 4.4vh, 64px) / -2 - 1px); }
+  .row.next::after { bottom: calc(clamp(14px, 2.6vh, 30px) * -1 - 1px); }
   .row.last::after { bottom: calc(clamp(18px, 4.4vh, 64px) / -2 - 1px); }
 
   .empty {
@@ -67,7 +74,6 @@
     color: var(--text); padding: 0 16px;
   }
   .empty.muted { color: var(--grey); font-weight: 600; font-size: calc(var(--fs) * .8); }
-  .up .empty { margin-top: auto; padding-bottom: clamp(24px, 6vh, 70px); }
   .down .empty { padding-top: clamp(24px, 6vh, 70px); }
 
   @media (max-width: 700px) {
@@ -83,8 +89,8 @@
     .row .label { grid-column: 1 / -1; text-align: left; padding: 0 0 4px 2px; font-size: 1.45em; white-space: normal; }
     .row .label:empty { display: none; }
     .row .pill.title { grid-column: 1 / -1; white-space: normal; border-radius: 1.1em; line-height: 1.25; }
-    .row.next::before, .row.last::after { left: 4%; right: 4%; }
-    .row.next::before { top: -14px; }
+    .fixed { padding-right: calc(10px + var(--sb, 0px)); }
+    .row.next::after, .row.last::after { left: 4%; right: 4%; }
     .row.last::after { bottom: -14px; }
     .pane::-webkit-scrollbar { width: 8px; }
   }
@@ -98,13 +104,17 @@
   </header>
 
   <main class="board">
-    <section class="pane up" id="upcoming" aria-label="Próximos eventos"></section>
+    <div class="upper">
+      <section class="fixed" id="next" aria-label="Próximo evento" aria-live="polite"></section>
+      <section class="pane up" id="upcoming" aria-label="Eventos siguientes"></section>
+    </div>
     <div class="divider" role="presentation"></div>
     <section class="pane down" id="past" aria-label="Eventos pasados"></section>
   </main>
 
 <script src="assets/data.js"></script>
 <script>
+  const nextEl = document.getElementById('next');
   const upEl = document.getElementById('upcoming');
   const pastEl = document.getElementById('past');
   let events = [];
@@ -125,15 +135,17 @@
     const up = events.filter(e => eventTime(e) > now).sort((a, b) => eventTime(a) - eventTime(b));
     const past = events.filter(e => eventTime(e) <= now).sort((a, b) => eventTime(b) - eventTime(a));
 
-    const sig = up.map(e => e.id).join() + '|' + past.map(e => e.id + e.title + e.date + e.time + e.place).join();
+    const sig = up.map(e => e.id + e.title + e.date + e.time + e.place).join() + '|' + past.map(e => e.id + e.title + e.date + e.time + e.place).join();
     if (sig === signature && !force) return;
     signature = sig;
 
-    // Próximos: el más lejano arriba, el más cercano abajo (junto a la división)
-    upEl.innerHTML = up.length
-      ? `<div class="list">${up.slice().reverse().map((e, i, a) =>
-          rowHTML(e, i === a.length - 1 ? 'next' : '', i === a.length - 1 ? 'Próximo evento' : '')).join('')}</div>`
+    // Próximo evento fijo arriba; los siguientes en el scroll, del más cercano al más lejano
+    nextEl.innerHTML = up.length
+      ? rowHTML(up[0], 'next', 'Próximo evento')
       : `<p class="empty">No hay eventos disponibles</p>`;
+    upEl.innerHTML = up.length > 1
+      ? `<div class="list">${up.slice(1).map(e => rowHTML(e, '', '')).join('')}</div>`
+      : '';
 
     // Pasados: el más reciente arriba
     pastEl.innerHTML = past.length
@@ -141,7 +153,7 @@
           rowHTML(e, i === 0 ? 'last' : '', i === 0 ? 'Eventos Pasados' : '')).join('')}</div>`
       : `<p class="empty muted">Todavía no hay eventos pasados</p>`;
 
-    upEl.scrollTop = upEl.scrollHeight;
+    upEl.scrollTop = 0;
     pastEl.scrollTop = 0;
     fade();
     scheduleNextChange(up[0]);
@@ -159,10 +171,15 @@
       row.style.opacity = (1 - 0.88 * Math.pow(t, 0.85)).toFixed(3);
     });
   }
+  // Alinea la fila fija con las del scroll descontando el ancho de la barra
+  function alignFixed() {
+    const sb = Math.max(upEl.offsetWidth - upEl.clientWidth, pastEl.offsetWidth - pastEl.clientWidth);
+    nextEl.style.setProperty('--sb', sb + 'px');
+  }
   let raf = 0;
   function fade() {
     cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => { fadePane(upEl, true); fadePane(pastEl, false); });
+    raf = requestAnimationFrame(() => { alignFixed(); fadePane(upEl, false); fadePane(pastEl, false); });
   }
   upEl.addEventListener('scroll', fade, { passive: true });
   pastEl.addEventListener('scroll', fade, { passive: true });
