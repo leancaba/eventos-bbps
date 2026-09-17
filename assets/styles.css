@@ -8,7 +8,7 @@
   --grey: #8a8a8a;
   --line: #cfcfcf;
   --pill-border: 3px;
-  --fs: clamp(13px, 1.75vw, 30px);
+  --fs: clamp(12px, 1.22vw, 22px);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,7 +38,7 @@ html, body { background: #fff; color: var(--ink); font-family: 'Montserrat', sys
   border: var(--pill-border) solid var(--c, var(--ink));
   color: var(--text);
   border-radius: 999px;
-  padding: .3em .9em;
+  padding: .38em 1em;
   font-weight: 700; text-transform: uppercase; letter-spacing: .01em;
   text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   line-height: 1.2;
