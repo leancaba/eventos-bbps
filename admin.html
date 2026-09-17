@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Cargar un evento · Bahía Blanca Plaza Shopping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  body { min-height: 100vh; min-height: 100dvh; }
+  main { width: min(100% - 32px, 1200px); margin: 0 auto; padding: clamp(24px, 6vh, 80px) 0 60px; }
+  h1 { font-size: clamp(22px, 2.6vw, 40px); font-weight: 700; text-align: center; margin-bottom: clamp(28px, 7vh, 90px); }
+  [hidden] { display: none !important; }
+
+  /* Formulario */
+  .form { display: grid; gap: clamp(22px, 5vh, 56px); font-size: clamp(16px, 2.4vw, 38px); }
+  .field { display: flex; align-items: center; gap: clamp(10px, 1.4vw, 22px); }
+  .field > label { flex: 0 0 34%; font-weight: 700; text-transform: uppercase; text-align: right; white-space: nowrap; }
+  .arrow { flex: 1 1 auto; height: 3px; background: var(--ink); position: relative; min-width: 34px; }
+  .arrow::after {
+    content: ''; position: absolute; right: 1px; top: 50%;
+    width: .55em; height: .55em; border: solid var(--ink); border-width: 3px 3px 0 0;
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .hint { flex: 0 0 clamp(90px, 10vw, 150px); color: var(--grey); font-weight: 600; font-size: .42em; text-transform: uppercase; line-height: 1.3; text-align: center; }
+
+  .input {
+    font: inherit; font-weight: 700; color: var(--ink); background: #fff;
+    border: var(--pill-border) solid var(--c, var(--ink)); border-radius: 999px;
+    padding: .2em .7em; height: 1.85em; min-width: 0; width: 100%;
+  }
+  .input::placeholder { color: #bdbdbd; }
+  .input.c-red, .input.c-purple { text-transform: uppercase; }
+  .field .input { flex: 0 0 auto; }
+  .field.title .arrow { flex: 0 0 clamp(40px, 5vw, 80px); }
+  .field.title .input { flex: 1 1 auto; width: auto; }
+  .field .input.date { width: 8.4em; font-size: .9em; }
+  .field .input.time { width: 6.4em; font-size: .9em; }
+  .field.place .input { width: 40%; }
+  .input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+  .input:focus-visible { outline-offset: 2px; }
+
+  .btn {
+    font: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: .02em;
+    background: var(--ink); color: #fff; border: 0; border-radius: 999px;
+    padding: .55em 2.6em; cursor: pointer; justify-self: center;
+  }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .form .btn { margin-top: clamp(6px, 3vh, 30px); }
+
+  .msg { text-align: center; font-weight: 600; font-size: clamp(14px, 1.3vw, 18px); min-height: 1.4em; }
+  .msg.ok { color: var(--green); }
+  .msg.err { color: var(--red); }
+
+  /* Login */
+  .login { width: min(100%, 420px); margin: 0 auto; display: grid; gap: 16px; font-size: 18px; }
+  .login label { font-weight: 700; font-size: 14px; text-transform: uppercase; margin-bottom: -8px; }
+  .login .input { color: var(--ink); }
+  .login .btn { width: 100%; margin-top: 8px; padding: .8em; }
+
+  /* Lista de eventos cargados */
+  .loaded { margin-top: clamp(48px, 10vh, 110px); border-top: 2px solid var(--line); padding-top: 32px; }
+  .loaded h2 { font-size: clamp(18px, 1.8vw, 26px); font-weight: 700; margin-bottom: 18px; }
+  .loaded ul { list-style: none; display: grid; gap: 10px; }
+  .loaded li {
+    display: grid; grid-template-columns: minmax(0, 1fr) 7.5em 5.5em 9em auto; gap: 10px; align-items: center;
+    font-size: clamp(12px, 1.1vw, 16px);
+  }
+  .loaded .pill { border-width: 2px; padding: .3em .8em; }
+  .loaded li.is-past { opacity: .5; }
+  .del { font: inherit; font-weight: 600; font-size: .9em; background: none; border: 0; color: var(--red); cursor: pointer; padding: .4em; text-decoration: underline; }
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .logout { font: inherit; font-weight: 600; font-size: 14px; background: none; border: 0; color: var(--grey); cursor: pointer; text-decoration: underline; }
+  .note { font-size: 13px; color: var(--grey); text-align: center; margin-top: 10px; }
+
+  @media (max-width: 700px) {
+    :root { --pill-border: 2px; }
+    .top { padding: 14px 54px 12px 12px; justify-content: flex-start; }
+    .top .brand { width: 100%; }
+    .icon-btn { width: 34px; right: 12px; }
+    .form { font-size: 18px; gap: 20px; }
+    .field { flex-wrap: wrap; row-gap: 6px; column-gap: 12px; }
+    .field > label { flex: 0 0 100%; text-align: left; font-size: 15px; }
+    .arrow { display: none; }
+    .field.title .input, .field.place .input { flex: 1 1 100%; width: 100%; }
+    .field.title .hint, .field.place .hint { display: none; }
+    .field .input.date { width: 10em; }
+    .field .input.time { width: 6.5em; }
+    .hint { flex: 0 0 auto; text-align: left; font-size: 11px; }
+    .form .btn { width: 100%; padding: .8em; }
+    .loaded li { grid-template-columns: auto auto minmax(0, 1fr) auto; font-size: 12px; gap: 6px; }
+    .loaded .pill { padding: .3em .6em; }
+    .loaded li + li { margin-top: 6px; }
+    .loaded li .title { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <img class="brand" src="assets/titulo.png" alt="Eventos en el Bahía Blanca Plaza Shopping" width="1479" height="88">
+    <a class="icon-btn close" href="./" aria-label="Volver a la pantalla de eventos"></a>
+  </header>
+
+  <main>
+    <!-- Ingreso -->
+    <section id="loginView">
+      <h1>Ingresar al panel</h1>
+      <form class="login" id="loginForm" autocomplete="on">
+        <label for="user">Usuario</label>
+        <input class="input" id="user" name="user" autocomplete="username" required>
+        <label for="pass">Contraseña</label>
+        <input class="input" id="pass" name="pass" type="password" autocomplete="current-password" required>
+        <button class="btn" type="submit">Ingresar</button>
+        <p class="msg" id="loginMsg" role="alert"></p>
+      </form>
+    </section>
+
+    <!-- Carga -->
+    <section id="panelView" hidden>
+      <h1>Cargar un evento</h1>
+      <form class="form" id="eventForm" novalidate>
+        <div class="field title">
+          <label for="title">Título del evento</label>
+          <span class="arrow" aria-hidden="true"></span>
+          <input class="input c-red" id="title" maxlength="80" required>
+          <span class="hint" aria-hidden="true"></span>
+        </div>
+        <div class="field">
+          <label for="date">Fecha</label>
+          <span class="arrow" aria-hidden="true"></span>
+          <input class="input date c-blue" id="date" type="date" required>
+          <span class="hint">Seleccioná<br>la fecha</span>
+        </div>
+        <div class="field">
+          <label for="time">Horario</label>
+          <span class="arrow" aria-hidden="true"></span>
+          <input class="input time c-green" id="time" type="time" required>
+          <span class="hint">Seleccioná<br>la hora</span>
+        </div>
+        <div class="field place">
+          <label for="place">Lugar</label>
+          <span class="arrow" aria-hidden="true"></span>
+          <input class="input c-purple" id="place" maxlength="40" required>
+          <span class="hint" aria-hidden="true"></span>
+        </div>
+        <button class="btn" type="submit" id="saveBtn">Guardar</button>
+        <p class="msg" id="formMsg" role="status"></p>
+      </form>
+
+      <div class="loaded">
+        <div class="bar">
+          <h2>Eventos cargados</h2>
+          <button class="logout" id="logout" type="button">Cerrar sesión</button>
+        </div>
+        <ul id="list"></ul>
+        <p class="note" id="modeNote" hidden>Modo de prueba: los eventos se guardan solo en este navegador. Conectá la base de datos en Vercel para publicarlos.</p>
+      </div>
+    </section>
+  </main>
+
+<script src="assets/data.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let cred = null;
+
+  try { cred = JSON.parse(sessionStorage.getItem('bbps_cred')); } catch {}
+  if (cred) enter();
+
+  $('loginForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const user = $('user').value.trim(), pass = $('pass').value;
+    $('loginMsg').textContent = '';
+    if (await Data.login(user, pass)) {
+      cred = { user, pass };
+      try { sessionStorage.setItem('bbps_cred', JSON.stringify(cred)); } catch {}
+      enter();
+    } else {
+      $('loginMsg').className = 'msg err';
+      $('loginMsg').textContent = 'Usuario o contraseña incorrectos.';
+      $('pass').value = ''; $('pass').focus();
+    }
+  });
+
+  $('logout').addEventListener('click', () => {
+    try { sessionStorage.removeItem('bbps_cred'); } catch {}
+    cred = null;
+    $('panelView').hidden = true; $('loginView').hidden = false;
+  });
+
+  async function enter() {
+    $('loginView').hidden = true; $('panelView').hidden = false;
+    if (matchMedia('(pointer: fine)').matches) $('title').focus();
+    await refresh();
+  }
+
+  async function refresh() {
+    const events = await Data.list();
+    $('modeNote').hidden = Data.mode !== 'local';
+    const now = Date.now();
+    events.sort((a, b) => eventTime(b) - eventTime(a));
+    $('list').innerHTML = events.length ? events.map(e => `
+      <li class="${eventTime(e) <= now ? 'is-past' : ''}">
+        <div class="pill title c-red"><span>${esc(e.title)}</span></div>
+        <div class="pill c-blue"><span>${fmtDate(e.date)}</span></div>
+        <div class="pill c-green"><span>${esc(e.time)}</span></div>
+        <div class="pill c-purple"><span>${esc(e.place)}</span></div>
+        <button class="del" data-id="${esc(e.id)}" type="button">Eliminar</button>
+      </li>`).join('') : '<li class="note">Todavía no hay eventos cargados.</li>';
+  }
+
+  $('list').addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('.del');
+    if (!btn || !confirm('¿Eliminar este evento?')) return;
+    try { await Data.remove(btn.dataset.id, cred); await refresh(); }
+    catch (e) { alert(e.message); }
+  });
+
+  $('eventForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const msg = $('formMsg');
+    const data = {
+      title: $('title').value.trim().toUpperCase(),
+      date: $('date').value,
+      time: $('time').value,
+      place: $('place').value.trim().toUpperCase(),
+    };
+    const missing = ['title', 'date', 'time', 'place'].find(k => !data[k]);
+    if (missing) {
+      msg.className = 'msg err';
+      msg.textContent = 'Completá título, fecha, horario y lugar.';
+      $(missing).focus();
+      return;
+    }
+    $('saveBtn').disabled = true;
+    try {
+      await Data.add(data, cred);
+      const past = eventTime(data) <= Date.now();
+      msg.className = 'msg ok';
+      msg.textContent = past ? 'Evento guardado en Eventos Pasados.' : 'Evento guardado en Próximos eventos.';
+      $('eventForm').reset();
+      $('title').focus();
+      await refresh();
+    } catch (e) {
+      msg.className = 'msg err';
+      msg.textContent = e.message.includes('Usuario') ? 'La sesión venció. Volvé a ingresar.' : e.message;
+    } finally {
+      $('saveBtn').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

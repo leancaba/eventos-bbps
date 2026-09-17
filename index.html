@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eventos en el Bahía Blanca Plaza Shopping</title>
+<meta name="description" content="Próximos eventos y eventos pasados en el Bahía Blanca Plaza Shopping.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+  .board { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr 2px 1fr; }
+  .divider { background: var(--line); }
+
+  .pane {
+    min-height: 0; overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column;
+    scrollbar-width: thin; scrollbar-color: #6f6f6f #fff;
+    padding-right: clamp(10px, 2.2vw, 40px);
+  }
+  .pane.up { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); }
+  .pane.down { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 22%); mask-image: linear-gradient(to top, transparent 0, #000 22%); }
+  .pane::-webkit-scrollbar { width: 12px; }
+  .pane::-webkit-scrollbar-track { background: #fff; border: 2px solid #777; margin: 6px 0; }
+  .pane::-webkit-scrollbar-thumb { background: #6f6f6f; }
+
+  .list {
+    width: min(100%, 1500px); margin: 0 auto;
+    display: flex; flex-direction: column;
+    gap: clamp(22px, 5.2vh, 76px);
+    padding: clamp(18px, 3vh, 34px) 0;
+  }
+  .up .list { margin-top: auto; }        /* los eventos quedan pegados a la división */
+
+  .row {
+    position: relative;
+    display: grid; align-items: center;
+    grid-template-columns: clamp(120px, 20%, 330px) minmax(0, 1fr) auto auto minmax(0, .5fr);
+    column-gap: clamp(6px, .9vw, 16px);
+    font-size: var(--fs);
+    padding-left: clamp(10px, 2.2vw, 40px);
+    will-change: opacity;
+  }
+  .row .label { font-weight: 700; font-size: .92em; text-align: right; padding-right: clamp(8px, 2.5vw, 50px); white-space: nowrap; }
+  .row .pill.date, .row .pill.time { min-width: 0; }
+
+  /* Línea sobre el próximo evento y bajo el último evento pasado */
+  .row.next::before, .row.last::after {
+    content: ''; position: absolute; height: 2px; background: var(--ink);
+    left: 8%; right: 10%;
+  }
+  .row.next::before { top: calc(clamp(22px, 5.2vh, 76px) / -2 - 1px); }
+  .row.last::after { bottom: calc(clamp(22px, 5.2vh, 76px) / -2 - 1px); }
+
+  .empty {
+    font-size: var(--fs); font-weight: 700; text-align: center;
+    color: var(--text); padding: 0 16px;
+  }
+  .empty.muted { color: var(--grey); font-weight: 600; font-size: calc(var(--fs) * .8); }
+  .up .empty { margin-top: auto; padding-bottom: clamp(24px, 6vh, 70px); }
+  .down .empty { padding-top: clamp(24px, 6vh, 70px); }
+
+  @media (max-width: 700px) {
+    :root { --fs: clamp(12px, 3.6vw, 17px); --pill-border: 2px; }
+    .top { padding: 14px 54px 12px 12px; justify-content: flex-start; }
+    .icon-btn { width: 34px; right: 12px; }
+    .top .brand { width: 100%; }
+    .list { gap: 26px; padding: 18px 0; }
+    .row {
+      grid-template-columns: auto auto minmax(0, 1fr);
+      row-gap: 7px; padding-left: 14px;
+    }
+    .row .label { grid-column: 1 / -1; text-align: left; padding: 0 0 2px 4px; font-size: 1.05em; }
+    .row .label:empty { display: none; }
+    .row .pill.title { grid-column: 1 / -1; }
+    .row.next::before, .row.last::after { left: 4%; right: 4%; }
+    .row.next::before { top: -14px; }
+    .row.last::after { bottom: -14px; }
+    .pane::-webkit-scrollbar { width: 8px; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .pane { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+  <header class="top">
+    <img class="brand" src="assets/titulo.png" alt="Eventos en el Bahía Blanca Plaza Shopping" width="1479" height="88">
+    <a class="icon-btn" href="admin.html" aria-label="Panel de carga de eventos"></a>
+  </header>
+
+  <main class="board">
+    <section class="pane up" id="upcoming" aria-label="Próximos eventos"></section>
+    <div class="divider" role="presentation"></div>
+    <section class="pane down" id="past" aria-label="Eventos pasados"></section>
+  </main>
+
+<script src="assets/data.js"></script>
+<script>
+  const upEl = document.getElementById('upcoming');
+  const pastEl = document.getElementById('past');
+  let events = [];
+  let signature = '';
+  let changeTimer = null;
+
+  const rowHTML = (e, cls, label) => `
+    <article class="row ${cls}">
+      <div class="label">${label}</div>
+      <div class="pill title c-red"><span>${esc(e.title)}</span></div>
+      <div class="pill date c-blue"><span>${fmtDate(e.date)}</span></div>
+      <div class="pill time c-green"><span>${esc(e.time)}</span></div>
+      <div class="pill place c-purple"><span>${esc(e.place)}</span></div>
+    </article>`;
+
+  function render(force) {
+    const now = Date.now();
+    const up = events.filter(e => eventTime(e) > now).sort((a, b) => eventTime(a) - eventTime(b));
+    const past = events.filter(e => eventTime(e) <= now).sort((a, b) => eventTime(b) - eventTime(a));
+
+    const sig = up.map(e => e.id).join() + '|' + past.map(e => e.id + e.title + e.date + e.time + e.place).join();
+    if (sig === signature && !force) return;
+    signature = sig;
+
+    // Próximos: el más lejano arriba, el más cercano abajo (junto a la división)
+    upEl.innerHTML = up.length
+      ? `<div class="list">${up.slice().reverse().map((e, i, a) =>
+          rowHTML(e, i === a.length - 1 ? 'next' : '', i === a.length - 1 ? 'Próximo evento' : '')).join('')}</div>`
+      : `<p class="empty">No hay eventos disponibles</p>`;
+
+    // Pasados: el más reciente arriba
+    pastEl.innerHTML = past.length
+      ? `<div class="list">${past.map((e, i) =>
+          rowHTML(e, i === 0 ? 'last' : '', i === 0 ? 'Eventos Pasados' : '')).join('')}</div>`
+      : `<p class="empty muted">Todavía no hay eventos pasados</p>`;
+
+    upEl.scrollTop = upEl.scrollHeight;
+    pastEl.scrollTop = 0;
+    fade();
+    scheduleNextChange(up[0]);
+  }
+
+  // Desvanece cada fila según su distancia a la división central
+  function fadePane(pane, fromBottom) {
+    const box = pane.getBoundingClientRect();
+    const edge = fromBottom ? box.bottom : box.top;
+    pane.querySelectorAll('.row').forEach(row => {
+      const r = row.getBoundingClientRect();
+      const center = r.top + r.height / 2;
+      const dist = Math.abs(edge - center) - r.height * 1.1;
+      const t = Math.min(1, Math.max(0, dist / (box.height - r.height * 1.1)));
+      row.style.opacity = (1 - 0.88 * Math.pow(t, 0.85)).toFixed(3);
+    });
+  }
+  let raf = 0;
+  function fade() {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => { fadePane(upEl, true); fadePane(pastEl, false); });
+  }
+  upEl.addEventListener('scroll', fade, { passive: true });
+  pastEl.addEventListener('scroll', fade, { passive: true });
+  addEventListener('resize', fade);
+
+  // Cuando vence el próximo evento, pasa a "Eventos Pasados" en el momento justo
+  function scheduleNextChange(next) {
+    clearTimeout(changeTimer);
+    if (!next) return;
+    const wait = Math.min(eventTime(next) - Date.now() + 500, 60 * 60 * 1000);
+    changeTimer = setTimeout(() => render(), Math.max(wait, 500));
+  }
+
+  async function load() {
+    events = await Data.list();
+    render();
+  }
+
+  load();
+  setInterval(load, 60 * 1000);          // trae eventos nuevos cada minuto
+  setInterval(() => render(), 15 * 1000); // respaldo por si el equipo estuvo suspendido
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+  addEventListener('storage', load);      // modo local: refleja cargas hechas en otra pestaña
+</script>
+</body>
+</html>
