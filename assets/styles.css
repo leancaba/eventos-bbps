@@ -1,0 +1,50 @@
+:root {
+  --red: #e3263a;
+  --blue: #009fe3;
+  --green: #1e6b3c;
+  --purple: #662483;
+  --ink: #1a1a1a;
+  --text: #2b2b2b;
+  --grey: #8a8a8a;
+  --line: #cfcfcf;
+  --pill-border: 3px;
+  --fs: clamp(13px, 1.75vw, 30px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; color: var(--ink); font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+
+/* ---------- Encabezado ---------- */
+.top {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(18px, 3.2vh, 40px) clamp(64px, 8vw, 120px);
+}
+.top .brand { width: min(62vw, 1000px); height: auto; display: block; }
+.icon-btn {
+  position: absolute; right: clamp(14px, 3vw, 48px); top: 50%; transform: translateY(-50%);
+  width: clamp(36px, 3.8vw, 58px); aspect-ratio: 1;
+  display: grid; place-items: center;
+  border: 2px solid var(--ink); background: #fff; color: var(--ink);
+  cursor: pointer; text-decoration: none;
+}
+.icon-btn::before { content: ''; position: absolute; inset: 3px; border: 2px solid var(--ink); border-radius: 50%; }
+.icon-btn::after { content: ''; width: 46%; aspect-ratio: 1; border-radius: 50%; background: var(--ink); }
+.icon-btn.close::after { content: '×'; background: none; width: auto; font-size: clamp(22px, 2.4vw, 36px); font-weight: 600; line-height: 1; margin-top: -2px; }
+
+/* ---------- Pastillas ---------- */
+.pill {
+  border: var(--pill-border) solid var(--c, var(--ink));
+  color: var(--text);
+  border-radius: 999px;
+  padding: .3em .9em;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .01em;
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.c-red { --c: var(--red); }
+.c-blue { --c: var(--blue); }
+.c-green { --c: var(--green); }
+.c-purple { --c: var(--purple); }
+.pill.title { text-align: left; }
